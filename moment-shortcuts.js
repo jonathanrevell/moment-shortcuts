@@ -1,26 +1,51 @@
-import Moment from "moment";
-import "moment-range";
+var Moment = require("moment");
+require("moment-range");
 
-export var YEAR = (new Moment()).year();
+var YEAR = (new Moment()).year();
+module.exports.YEAR = YEAR;
 
-export function Timestamp( date = new Date() ) {
+
+function Timestamp( date ) {
+    if(!date) {
+        date = new Date();
+    }
     return Moment(date).format("x");
 }
+module.exports.Timestamp = Timestamp;
 
-export function TimestampInt( date = new Date() ) {
+
+function TimestampInt( date ) {
+    if(!date) {
+        date = new Date();
+    }
     return Number.parseInt( Timestamp(date) );
 }
+module.exports.TimestampInt = TimestampInt;
+
 
 // ISO8601
-export function TimestampISO( date = new Date() ) {
+function TimestampISO( date ) {
+    if(!date) {
+        date = new Date();
+    }    
     return Moment(date).toISOString();
 }
+module.exports.TimestampISO = TimestampISO;
 
-export function DateInputFormat( date = new Date() ) {
+
+function DateInputFormat( date ) {
+    if(!date) {
+        date = new Date();
+    }    
     return Moment(date).format("YYYY-MM-DD");
 }
+module.exports.DateInputFormat = DateInputFormat;
 
-export function FriendlyDate( date = new Date() ) {
+
+function FriendlyDate( date ) {
+    if(!date) {
+        date = new Date();
+    }    
     var moment = Moment(date);
     var momentNow = Moment();
     if(momentNow.diff(moment, "minutes") <= 2) {
@@ -37,24 +62,44 @@ export function FriendlyDate( date = new Date() ) {
         return moment.format("MMM D, YYYY");
     }
 }
+module.exports.FriendlyDate = FriendlyDate;
 
-export function RangeForCalendarYear( year = YEAR ) {
-    var start = new Moment({ year, month: 1, day: 1 });
+
+function RangeForCalendarYear( year ) {
+    if(!year) {
+        year = YEAR;
+    }
+    var start = new Moment({ year: year, month: 1, day: 1 });
     var end = start.clone().endOf("year");
 
     return Moment.range( start, end );
 }
+module.exports.RangeForCalendarYear = RangeForCalendarYear;
 
-export function Range12MonthsPrevious( startDate = new Date() ) {
+
+function Range12MonthsPrevious( startDate ) {
+    if(!startDate) {
+        startDate = new Date();
+    }
     var end = new Moment(startDate);
     var start = end.clone().subtract(11, "month");
 
     return Moment.range( start, end );
 }
+module.exports.Range12MonthsPrevious = Range12MonthsPrevious;
 
-export function RangeXMonthsPrevious( startDate = new Date(), months = 1 ) {
+
+function RangeXMonthsPrevious( startDate, months ) {
+    if(!startDate) {
+        startDate = new Date();
+    }
+    if(!months) {
+        months = 1;
+    }        
     var end = new Moment(startDate);
     var start = end.clone().subtract(months, "month");
 
     return Moment.range( start, end );
 }
+module.exports.RangeXMonthsPrevious = RangeXMonthsPrevious;
+
