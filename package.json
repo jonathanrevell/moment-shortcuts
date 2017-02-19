@@ -1,0 +1,23 @@
+{
+  "name": "moment-shortcuts",
+  "version": "1.0.0",
+  "description": "Shortcuts and other extensions for momentjs",
+  "main": "moment-shortcuts.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonathanrevell/moment-shortcuts.git"
+  },
+  "author": "Jonathan Revell H",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jonathanrevell/moment-shortcuts/issues"
+  },
+  "homepage": "https://github.com/jonathanrevell/moment-shortcuts#readme",
+  "dependencies": {
+    "moment": "^2.17.1",
+    "moment-recur": "^1.0.5"
+  }
+}
