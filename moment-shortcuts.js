@@ -15175,7 +15175,7 @@ return DateRange;
     hasModule = (typeof module !== "undefined" && module !== null) && (module.exports != null);
 
     if (typeof moment === 'undefined') {
-      throw Error("Can't find moment");
+        throw Error("Can't find moment");
     }
 
     // Interval object for creating and matching interval-based rules
@@ -15226,8 +15226,8 @@ return DateRange;
         }
 
         return {
-          create: createInterval,
-          match: matchInterval
+            create: createInterval,
+            match: matchInterval
         };
     })();
 
@@ -15253,7 +15253,7 @@ return DateRange;
             "monthsOfYear"      : { low: 0, high: 11 }
         };
 
-        // Private function for cehcking the range of calendar values
+        // Private function for checking the range of calendar values
         function checkRange(low, high, list) {
             list.forEach(function(v) {
                 if ( v < low || v > high ) {
@@ -15370,6 +15370,98 @@ return DateRange;
             "monthsOfYear": "monthOfYear"
         };
 
+        var recurPattern = {
+            index: 0,
+            pattern: null,
+            _interval: null,
+            rules: [],
+
+            set interval( rule ) {
+                var keys = Object.keys( rule.units );
+                this._interval = {
+                    measure: rule.measure,
+                    unit: keys[0]
+                };
+            },
+
+            get interval() {
+                return this._interval;
+            },
+
+            get measure() {
+                return ruleTypes[this.rules[0].measure];
+            },
+
+            nextDate: function( workingDate ) {
+                var day;
+
+                if(this.measure == "daysOfMonth") {
+                    if(this.index >= this.pattern.length) {
+                        workingDate.add(1, "month");
+                        this.index = 0;
+                    }
+                    day = this.pattern[this.index];
+
+                    workingDate.date(day);
+
+                } else if(this.measure == "daysOfWeek") {
+                    // Sunday = 0, Saturday = 6
+                    if(this.index >= this.pattern.length) {
+                        workingDate.add( this.interval.unit, this.interval.measure);
+                        this.index = 0;
+                    }
+                    day = this.pattern[this.index];
+
+                    workingDate.day( day );
+                }
+
+                this.index++;
+            },
+
+            rebuild: function( rules ) {
+                this.reset();
+
+                this.rules = rules;
+
+                var days;
+                var rule = rules[0];
+                var list = rule.units;
+                // var measure = ruleTypes[rule.measure];
+
+                if (rules.length == 1 && this.measure == "daysOfMonth") {
+                    // Populate with the days in the rule (e.g. 1, 5, 31)
+                    days = Object.keys( rules );
+
+                    // Set up the pattern
+                    if(days && days.length > 0) {
+                        this.pattern = days;
+                    }
+
+                } else if ((rules.length == 1 || rules.length == 2) && this.measure == "daysOfWeek" ) {
+                    // Populate with the days of the week in the rule (e.g. 0, 1, 7)
+                    days = Object.keys( rules );
+
+                    // Set up the pattern
+                    if(days && days.length > 0) {
+                        this.pattern = days;
+                    }
+                    if(rules.length == 1) {
+                        this.interval = {
+                            units: { 1: true },
+                            measure: "weeks"
+                        };
+                    } else {
+                        this.interval = rules[1];
+                    }
+
+                }
+            },
+
+            reset: function() {
+                this.index = 0;
+                this.pattern = null;
+            }
+        };
 
         /////////////////////////////////
         // Private Methods             //
@@ -15427,8 +15519,8 @@ return DateRange;
             return this;
         }
 
-        // Private method to get next, previous or all occurances
-        function getOccurances(num, format, type) {
+        // Private method to get next, previous or all occurrences
+        function getOccurrences(num, format, type) {
             var currentDate, date;
             var dates = [];
 
@@ -15437,11 +15529,11 @@ return DateRange;
             }
 
             if ( !this.start && !this.from ) {
-                throw Error("Cannot get occurances without start or from date.");
+                throw Error("Cannot get occurrences without start or from date.");
             }
 
             if ( type === "all" && !this.end ) {
-                throw Error("Cannot get all occurances without an end date.");
+                throw Error("Cannot get all occurrences without an end date.");
             }
 
             if( !!this.end && (this.start > this.end) ) {
@@ -15456,6 +15548,9 @@ return DateRange;
             // Start from the from date, or the start date if from is not set.
             currentDate = (this.from || this.start).clone();
 
+            // Reset the pattern builder, which dramatically speeds up queries
+            recurPattern.rebuild(this.rules);
+
             // Include the initial date to the results if wanting all dates
             if(type === "all") {
                 if (this.matches(currentDate, false)) {
@@ -15466,21 +15561,17 @@ return DateRange;
 
             // Get the next N dates, if num is null then infinite
             while(dates.length < (num===null ? dates.length+1 : num)) {
-                if (type === "next" || type === "all") {
-                    currentDate.add(1, "day");
-                }
-                else {
-                    currentDate.subtract(1, "day");
-                }
-
-                //console.log("Match: " + currentDate.format("L") + " - " + this.matches(currentDate, true));
+                getNextDate( currentDate, type );
 
                 // Don't match outside the date if generating all dates within start/end
+                // ToDo: understand why finding "next" would not take the end date into consideration
                 if (this.matches(currentDate, (type==="all"?false:true))) {
                     date = format ? currentDate.format(format) : currentDate.clone();
                     dates.push(date);
                 }
-                if(type === "all" && currentDate >= this.end) {
+                // if(type === "all" && currentDate >= this.end) {
+                // when searching for "all" or "next" dates, if the end date occurs prior to next date, exit the loop
+                if(currentDate >= this.end) {
                     break;
                 }
             }
@@ -15492,6 +15583,23 @@ return DateRange;
         ///////////////////////
         // Private Functions //
         ///////////////////////
+        
+
+        function getNextDate( currentDate, type ) {
+                if(type === "all") {
+                    if (recurPattern.pattern !== null) {
+                        recurPattern.nextDate( currentDate );
+                    } else {
+                        currentDate.add(1, "day");
+                    } 
+                }
+                else if (type === "next") {
+                    currentDate.add(1, "day");
+                }
+                else {
+                    currentDate.subtract(1, "day");
+                }
+        }
 
         // Private function to see if a date is within range of start/end
         function inRange(start, end, date) {
@@ -15542,7 +15650,7 @@ return DateRange;
                     return "weeks";
 
                 case "month":
-                    return "months";
+                    return "month";
 
                 case "year":
                     return "years";
@@ -15570,7 +15678,7 @@ return DateRange;
             }
         }
 
-        // Private funtion to see if all rules matche
+        // Private function to see if all rules match
         function matchAllRules(rules, date, start) {
             var i, len, rule, type;
 
@@ -15612,11 +15720,11 @@ return DateRange;
         // Recur Object Constrcutor
         var Recur = function(options) {
             if ( options.start ) {
-                this.start = moment(options.start).dateOnly();
+                this.start = moment(options.start, 'MM/DD/YYYY').dateOnly();
             }
 
             if ( options.end ) {
-                this.end = moment(options.end).dateOnly();
+                this.end = moment(options.end, 'MM/DD/YYYY').dateOnly();
             }
 
             // Our list of rules, all of which must match
@@ -15649,7 +15757,7 @@ return DateRange;
             }
 
             if (date) {
-                this.start = moment(date).dateOnly();
+                this.start = moment(date, 'MM/DD/YYYY').dateOnly();
                 return this;
             }
 
@@ -15664,7 +15772,7 @@ return DateRange;
             }
 
             if (date) {
-                this.end = moment(date).dateOnly();
+                this.end = moment(date, 'MM/DD/YYYY').dateOnly();
                 return this;
             }
 
@@ -15673,13 +15781,13 @@ return DateRange;
 
         // Get/Set a temporary from date
         Recur.prototype.fromDate = function(date) {
-             if (date === null) {
+            if (date === null) {
                 this.from = null;
                 return this;
             }
 
             if (date) {
-                this.from = moment(date).dateOnly();
+                this.from = moment(date, 'MM/DD/YYYY').dateOnly();
                 return this;
             }
 
@@ -15690,11 +15798,11 @@ return DateRange;
         Recur.prototype.save = function() {
             var data = {};
 
-            if (this.start && moment(this.start).isValid()) {
+            if (this.start && moment(this.start, 'MM/DD/YYYY').isValid()) {
                 data.start = this.start.format("L");
             }
 
-            if (this.end && moment(this.end).isValid()) {
+            if (this.end && moment(this.end, 'MM/DD/YYYY').isValid()) {
                 data.end = this.end.format("L");
             }
 
@@ -15733,7 +15841,7 @@ return DateRange;
 
         // Creates an exception date to prevent matches, even if rules match
         Recur.prototype.except = function(date) {
-            date = moment(date).dateOnly();
+            date = moment(date, 'MM/DD/YYYY').dateOnly();
             this.exceptions.push(date);
             return this;
         };
@@ -15741,7 +15849,7 @@ return DateRange;
         // Forgets rules (by passing measure) and exceptions (by passing date)
         Recur.prototype.forget = function(dateOrRule) {
             var i, len;
-            var whatMoment = moment(dateOrRule);
+            var whatMoment = moment(dateOrRule, 'MM/DD/YYYY');
 
             // If valid date, try to remove it from exceptions
             if (whatMoment.isValid()) {
@@ -15777,7 +15885,7 @@ return DateRange;
 
         // Attempts to match a date to the rules
         Recur.prototype.matches = function(dateToMatch, ignoreStartEnd) {
-            var date = moment(dateToMatch).dateOnly();
+            var date = moment(dateToMatch, 'MM/DD/YYYY').dateOnly();
 
             if (!date.isValid()) {
                 throw Error("Invalid date supplied to match method: " + dateToMatch);
@@ -15795,17 +15903,17 @@ return DateRange;
 
         // Get next N occurances
         Recur.prototype.next = function(num, format) {
-            return getOccurances.call(this, num, format, "next");
+            return getOccurrences.call(this, num, format, "next");
         };
 
         // Get previous N occurances
         Recur.prototype.previous = function(num, format) {
-            return getOccurances.call(this, num, format, "previous");
+            return getOccurrences.call(this, num, format, "previous");
         };
 
         // Get all occurances between start and end date
         Recur.prototype.all = function(format) {
-            return getOccurances.call(this, null, format, "all");
+            return getOccurrences.call(this, null, format, "all");
         };
 
         // Create the measure functions (days(), months(), daysOfMonth(), monthsOfYear(), etc.)
@@ -15903,7 +16011,7 @@ return DateRange;
     // Plugin for removing all time information from a given date
     moment.fn.dateOnly = function() {
         if (this.tz && typeof(moment.tz) == 'function' ) {
-            return moment.tz(this.format('YYYY/MM/DD'), 'UTC');
+            return moment.tz(this.format('YYYY-MM-DD'), 'UTC');
         } else {
             return this.hours(0).minutes(0).seconds(0).milliseconds(0).add(this.utcOffset(), "minute").utcOffset(0);
         }
