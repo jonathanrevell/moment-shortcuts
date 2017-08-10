@@ -11,7 +11,8 @@ export function Timestamp( date ) {
     if(!date) {
         date = new Date();
     }
-    return Moment(date).format("x");
+    // Moment.ISO_8601
+    return Moment(date).toISOString()
 }
 
 
