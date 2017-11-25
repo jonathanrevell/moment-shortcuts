@@ -1,6 +1,6 @@
 {
   "name": "@jonathanrevell/moment-shortcuts",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Shortcuts and other extensions for momentjs",
   "main": "moment-shortcuts.js",
   "scripts": {
@@ -24,6 +24,6 @@
     "moment-recur": "github:jonathanrevell/moment-recur"
   },
   "devDependencies": {
-    "webpack": "^2.2.0"
+    "webpack": "^2.7.0"
   }
 }
